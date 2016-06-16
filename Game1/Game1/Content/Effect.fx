@@ -1,6 +1,6 @@
 ﻿
 matrix WorldViewProjection;
-float Transparency = 0.5;
+float Transparency = 0.65;
 
 struct VertexShaderInput
 {
@@ -27,10 +27,9 @@ VertexShaderOutput MainVS(in VertexShaderInput input)
 
 float4 MainPS(VertexShaderOutput input) : COLOR
 {
-	
-	float3 color = (color.rgb * color.a) + (color.rgb * (1 - color.a));
-    color.a = Transparency;
-	return input.Color;
+	//Alpha Blend	
+	return float4(input.Color.rgb, Transparency);
+	//return input.Color;
 }
 
 technique Basic

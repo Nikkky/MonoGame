@@ -1,6 +1,13 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
+
 
 namespace Game1
 {
@@ -10,16 +17,24 @@ namespace Game1
     public class Game1 : Game
     {
         GraphicsDeviceManager graphics;
+        GraphicsDevice device;
         SpriteBatch spriteBatch;
+        BasicEffect basicEffect;
+        RenderTarget2D renderTarget;
+        Matrix rendertargetProjectionMatrix;
 
+        DepthStencilState depth = new DepthStencilState() { DepthBufferEnable = true };
         Effect effect;
+        Texture2D texture;
         // массив вершин
         VertexPositionColor[] vertexList;
+        VertexPositionColor[] vertexList2;
+        VertexPositionColor[] vertexList3;
 
         // описание формата вершин
         VertexDeclaration vertexDeclaration;
 
-        
+        int width = 600, height = 600;
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -45,19 +60,51 @@ namespace Game1
         /// </summary>
         protected override void LoadContent()
         {
-            // создать массив-контейнер для хранения трёх вершин
-            vertexList = new VertexPositionColor[3];
+
+            graphics.PreferredBackBufferHeight = height;
+            graphics.PreferredBackBufferWidth = width;
+            graphics.ApplyChanges();
+
+
+            /////////////////////////////////////////////////////////////////
+            device = graphics.GraphicsDevice;
+
+            basicEffect = new BasicEffect(device);
+
+            vertexList = new VertexPositionColor[4];
+            vertexList2 = new VertexPositionColor[4];
+            vertexList3 = new VertexPositionColor[4];
 
             effect = Content.Load<Effect>("Effect");
 
-            // создать в массиве вершин три вершины типа VertexPositionColor описывающих 3D-треугольник
-            vertexList[0] = new VertexPositionColor(new Vector3(0, 0.5f, 0), Color.Gray);
-            vertexList[1] = new VertexPositionColor(new Vector3(-0.5f, -0.5f, 0), Color.Gray);
-            vertexList[2] = new VertexPositionColor(new Vector3(0.5f, -0.5f, 0), Color.Gray);
+            vertexList[0] = new VertexPositionColor(new Vector3(-0.5f, 0.5f, 0), Color.Red);
+            vertexList[1] = new VertexPositionColor(new Vector3(0.5f, 0.5f, 0), Color.Red);
+            vertexList[2] = new VertexPositionColor(new Vector3(-0.5f, -0.5f, 0), Color.Red);
+            vertexList[3] = new VertexPositionColor(new Vector3(0.5f, -0.5f, 0), Color.Red);
+
+            vertexList2[0] = new VertexPositionColor(new Vector3(-0.35f, 0.65f, 0), Color.Green);
+            vertexList2[1] = new VertexPositionColor(new Vector3(0.65f, 0.65f, 0), Color.Green);
+            vertexList2[2] = new VertexPositionColor(new Vector3(-0.35f, -0.35f, 0), Color.Green);
+            vertexList2[3] = new VertexPositionColor(new Vector3(0.65f, -0.35f, 0), Color.Green);
+
+            vertexList3[0] = new VertexPositionColor(new Vector3(-0.2f, 0.8f, 0), Color.Blue);
+            vertexList3[1] = new VertexPositionColor(new Vector3(0.8f, 0.8f, 0), Color.Blue);
+            vertexList3[2] = new VertexPositionColor(new Vector3(-0.2f, -0.2f, 0), Color.Blue);
+            vertexList3[3] = new VertexPositionColor(new Vector3(0.8f, -0.2f, 0), Color.Blue);
+
 
             // создать описание формата вершин
             vertexDeclaration = new VertexDeclaration(VertexPositionTexture.VertexDeclaration.GetVertexElements());
-                        
+            spriteBatch = new SpriteBatch(device);
+
+            PresentationParameters pp = device.PresentationParameters;
+
+            renderTarget = new RenderTarget2D(device, width, height);
+            rendertargetProjectionMatrix = Matrix.CreatePerspectiveFieldOfView(MathHelper.PiOver4, (float)width / (float)height, 0.5f, 100.0f);
+            /////////////////////////////////////////////////////////////////
+
+
+
 
             // Create a new SpriteBatch, which can be used to draw textures.
             //spriteBatch = new SpriteBatch(GraphicsDevice);
@@ -86,6 +133,8 @@ namespace Game1
 
             // TODO: Add your update logic here
 
+            ////
+
             base.Update(gameTime);
         }
 
@@ -95,9 +144,11 @@ namespace Game1
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
-            graphics.GraphicsDevice.Clear(Color.Blue);
 
+            
+            device.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1, 0);
+            device.SetRenderTarget(renderTarget);
+            ///////////////////////////////////////////////////////
             // начать отрисовку первого прохода
             effect.CurrentTechnique.Passes[0].Apply();
 
@@ -105,12 +156,22 @@ namespace Game1
             GraphicsDevice.RasterizerState = RasterizerState.CullNone;
 
             // нарисовать треугольник используя массив вершин
-            graphics.GraphicsDevice.DrawUserPrimitives<VertexPositionColor>
-                           (PrimitiveType.TriangleList, vertexList, 0, 1);
-
+            graphics.GraphicsDevice.DrawUserPrimitives<VertexPositionColor>(PrimitiveType.TriangleStrip, vertexList, 0, 2);
+            graphics.GraphicsDevice.DrawUserPrimitives<VertexPositionColor>(PrimitiveType.TriangleStrip, vertexList2, 0, 2);
+            graphics.GraphicsDevice.DrawUserPrimitives<VertexPositionColor>(PrimitiveType.TriangleStrip, vertexList3, 0, 2);
             // TODO: Add your drawing code here
+            ///////////////////////////////////////////////////////
+            Texture2D resolvedTexture = (Texture2D)renderTarget;
+            //device.SetRenderTarget(null);
+
+            spriteBatch.Begin();
+            spriteBatch.Draw(renderTarget, new Rectangle(0, 0, width, height), Color.Cyan);
+            spriteBatch.End();
+
+
 
             base.Draw(gameTime);
         }
     }
 }
+
